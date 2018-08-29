@@ -6,8 +6,12 @@
 #include "CayenneLPP.h"
 #include "lora_radio_helper.h"
 #include "standby.h"
+#include "DHT.h" 
 
-#define     STANDBY_TIME_S     60
+#define     STANDBY_TIME_S     5 * 60
+
+#define     SENSOR_READ_ATTEMPTS 10
+#define     SENSOR_WAIT_TIME 1000
   
 
 
@@ -18,6 +22,9 @@ static uint8_t APPSKEY[] = { 0xB4, 0xCA, 0x54, 0xD2, 0x3F, 0x9B, 0x55, 0x0F, 0x0
 
 // The port we're sending and receiving on
 #define MBED_CONF_LORA_APP_PORT     15
+
+// Peripherals
+static DHT sensor(D7, SEN51035P);          // Temperature sensor
 
 // EventQueue is required to dispatch events around
 static EventQueue ev_queue;
@@ -33,9 +40,35 @@ static void lora_event_handler(lorawan_event_t event);
 
 // Send a message over LoRaWAN
 static void send_message() {
-    CayenneLPP payload(10);
-    uint8_t alive_value = 1;
-    payload.addPresence(2, alive_value);
+    CayenneLPP payload(20);
+    int attempt = 0;
+    float temperature = 0.0f;
+    float humidity = 0.0f;
+    int error_code;
+
+    while (attempt++ < SENSOR_READ_ATTEMPTS) {
+      error_code = sensor.readData();
+      if (error_code != ERROR_NONE) {
+        printf("Error = %d\n", error_code);
+        wait_ms(SENSOR_WAIT_TIME);
+        continue;
+      }
+      else {
+        temperature = sensor.ReadTemperature(CELCIUS);
+        humidity = sensor.ReadHumidity();
+        break;
+      }
+    }
+        
+    if (error_code != ERROR_NONE) {
+        printf("Could not read DHT data: %d\n", error_code);
+    }
+    else {
+        payload.addTemperature(2, temperature);
+        payload.addRelativeHumidity(3, humidity);
+        printf("Temp=%f Humi=%f\n", temperature, humidity);
+    }
+   
 
     printf("Sending %d bytes\n", payload.getSize());
 
@@ -55,9 +88,9 @@ static void send_message() {
 int main() {
     set_time(0);
 
-    printf("========================\n");
-    printf("      LoRa Beacon       \n");
-    printf("========================\n");
+    printf("\r========================\n");
+    printf("\r      LoRa Beacon       \n");
+    printf("\r========================\n");
 
     printf("Sending every %d seconds\n", STANDBY_TIME_S);
 
@@ -75,7 +108,7 @@ int main() {
 
     // Disable adaptive data rating
     if (lorawan.disable_adaptive_datarate() != LORAWAN_STATUS_OK) {
-        printf("disable_adaptive_datarate failed!\n");
+        printf("\rdisable_adaptive_datarate failed!\n");
         return -1;
     }
 
