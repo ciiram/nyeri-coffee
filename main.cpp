@@ -10,8 +10,8 @@
 
 #define     STANDBY_TIME_S     5 * 60
 
-#define     SENSOR_READ_ATTEMPTS 10
-#define     SENSOR_WAIT_TIME 1000
+#define     SENSOR_READ_ATTEMPTS 5
+#define     SENSOR_WAIT_TIME 3000 //slow sensor, no more than once per 2 seconds
   
 
 
@@ -88,9 +88,9 @@ static void send_message() {
 int main() {
     set_time(0);
 
-    printf("\r========================\n");
-    printf("\r      LoRa Beacon       \n");
-    printf("\r========================\n");
+    printf("\r==========================\n");
+    printf("\r  Coffee Farm Sensors     \n");
+    printf("\r==========================\n");
 
     printf("Sending every %d seconds\n", STANDBY_TIME_S);
 
