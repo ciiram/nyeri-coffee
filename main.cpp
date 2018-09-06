@@ -8,9 +8,9 @@
 #include "standby.h"
 #include "DHT.h" 
 
-#define     STANDBY_TIME_S     5 * 60
+#define     STANDBY_TIME_S     30 * 60
 
-#define     SENSOR_READ_ATTEMPTS 5
+#define     SENSOR_READ_ATTEMPTS 3
 #define     SENSOR_WAIT_TIME 3000 //slow sensor, no more than once per 2 seconds
   
 
@@ -68,21 +68,27 @@ static void send_message() {
         payload.addRelativeHumidity(3, humidity);
         printf("Temp=%f Humi=%f\n", temperature, humidity);
     }
-   
 
-    printf("Sending %d bytes\n", payload.getSize());
+    
 
-    int16_t retcode = lorawan.send(MBED_CONF_LORA_APP_PORT, payload.getBuffer(), payload.getSize(), MSG_UNCONFIRMED_FLAG);
+    if (payload.getSize() > 0) {
+      printf("Sending %d bytes\n", payload.getSize());
+
+      int16_t retcode = lorawan.send(MBED_CONF_LORA_APP_PORT, payload.getBuffer(), payload.getSize(), MSG_UNCONFIRMED_FLAG);
 
     // for some reason send() ret\urns -1... I cannot find out why, the stack returns the right number. I feel that this is some weird Emscripten quirk
-    if (retcode < 0) {
+      if (retcode < 0) {
         retcode == LORAWAN_STATUS_WOULD_BLOCK ? printf("send - duty cycle violation\n")
-                : printf("send() - Error code %d\n", retcode);
+            : printf("send() - Error code %d\n", retcode);
 
         standby(STANDBY_TIME_S);
+      }
+
+      printf("%d bytes scheduled for transmission\n", retcode);
     }
 
-    printf("%d bytes scheduled for transmission\n", retcode);
+    else
+      standby(STANDBY_TIME_S);
 }
 
 int main() {
