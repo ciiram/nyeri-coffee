@@ -1,4 +1,4 @@
-# Temperature Monitoring at DeKUT Coffee Farm
+# Condition Monitoring at DeKUT Coffee Farm
 
 This repository contains code for a simple sensor system to monitor temperature at the DeKUT Coffee farm. The data are transmitted via lora to the Things Network and then to an AWS elasticsearch instance. It is based heavily on this [repo](https://github.com/janjongboom/dsa2018-greenhouse-monitor) by Jan Jongboom.
 
