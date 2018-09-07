@@ -25,7 +25,8 @@ static uint8_t APPSKEY[] = { 0xB4, 0xCA, 0x54, 0xD2, 0x3F, 0x9B, 0x55, 0x0F, 0x0
 
 // Peripherals
 static DHT sensor(D7, SEN51035P);          // Temperature sensor
-
+static AnalogIn soiltemperature(A1); //soil temperature
+static AnalogIn soilmoisture(A0); // Moisture sensor
 // EventQueue is required to dispatch events around
 static EventQueue ev_queue;
 
@@ -44,6 +45,16 @@ static void send_message() {
     int attempt = 0;
     float temperature = 0.0f;
     float humidity = 0.0f;
+    float soilmoisture = 0.000f;
+    float soiltemperature = 0.000f;
+    float a;
+    float b;
+    a = temperature;
+    b = moisture;
+    float temperature = temperature.read();
+    float moisture = moisture.read();
+    soiltemperature  = ((a * 41.67 * 3.3)-40); //soil temperature
+    soilmoisture = ((b * 10 * 3.3)-1);        // soil moisture
     int error_code;
 
     while (attempt++ < SENSOR_READ_ATTEMPTS) {
@@ -56,6 +67,8 @@ static void send_message() {
       else {
         temperature = sensor.ReadTemperature(CELCIUS);
         humidity = sensor.ReadHumidity();
+        soilmoisture = moisture.read();
+        soiltemperature = temperature.read()
         break;
       }
     }
@@ -66,7 +79,10 @@ static void send_message() {
     else {
         payload.addTemperature(2, temperature);
         payload.addRelativeHumidity(3, humidity);
-        printf("Temp=%f Humi=%f\n", temperature, humidity);
+        payload.addsoiltemperature(4, soiltemperature);
+        payload.addsoilmoisture(5, soilmoisture);
+        
+        printf("Temp=%f Humi=%f temp=%f moist=%f\n", temperature, humidity, soiltemperature, soilmoisture);
     }
 
     
