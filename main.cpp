@@ -52,7 +52,19 @@ static void send_message() {
    
     
     soil_temperature  = ((soil_temperature_sensor.read() * 41.67 * 3.3)-40); //soil temperature
-    soil_moisture = ((soil_moisture_sensor.read() * 10 * 3.3)-1);        // soil moisture
+    
+             //soil moisture
+    mysensor = soil_moisture_sensor.read() * 3.3; 
+    if ((mysensor) >= 0 && mysensor <= 1.1){
+              soil_moisture = ((mysensor * 10)-1); //for range of 0 to 1.1v
+       }
+    else if ((mysensor) >= 1.1 && mysensor <= 1.3){
+              soil_moisture = ((mysensor * 25)-17.5);  //for range of 1.1 to 1.3v
+       }
+    else if ((mysensor) >= 1.3 && mysensor <= 1.82){
+              soil_moisture = ((mysensor * 48.08)-47.5);  //for range of 1.3 to 1.8v
+       }
+    else {
     
     int error_code;
 
