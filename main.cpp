@@ -10,7 +10,7 @@
 
 #define     STANDBY_TIME_S     5 * 60
 
-#define     SENSOR_READ_ATTEMPTS 5
+#define     SENSOR_READ_ATTEMPTS 3
 #define     SENSOR_WAIT_TIME 3000 //slow sensor, no more than once per 2 seconds
   
 
@@ -24,7 +24,9 @@ static uint8_t APPSKEY[] = { 0xB4, 0xCA, 0x54, 0xD2, 0x3F, 0x9B, 0x55, 0x0F, 0x0
 #define MBED_CONF_LORA_APP_PORT     15
 
 // Peripherals
-static DHT sensor(D7, SEN51035P);          // Temperature sensor
+static DHT temperature_humidity_sensor(D7, SEN51035P);          // Temperature sensor
+static AnalogIn soil_temperature_sensor(A1); //soil temperature
+static AnalogIn soil_moisture_sensor(A2); // Moisture sensor
 
 // EventQueue is required to dispatch events around
 static EventQueue ev_queue;
@@ -40,22 +42,30 @@ static void lora_event_handler(lorawan_event_t event);
 
 // Send a message over LoRaWAN
 static void send_message() {
-    CayenneLPP payload(20);
+    CayenneLPP payload(50);
     int attempt = 0;
     float temperature = 0.0f;
     float humidity = 0.0f;
+   
+    float soil_moisture = 0.0f;
+    float soil_temperature = 0.0f;
+   
+    
+    soil_temperature  = ((soil_temperature_sensor.read() * 41.67 * 3.3)-40); //soil temperature
+    soil_moisture = ((soil_moisture_sensor.read() * 10 * 3.3)-1);        // soil moisture
+    
     int error_code;
 
     while (attempt++ < SENSOR_READ_ATTEMPTS) {
-      error_code = sensor.readData();
+      error_code = temperature_humidity_sensor.readData();
       if (error_code != ERROR_NONE) {
         printf("Error = %d\n", error_code);
         wait_ms(SENSOR_WAIT_TIME);
         continue;
       }
       else {
-        temperature = sensor.ReadTemperature(CELCIUS);
-        humidity = sensor.ReadHumidity();
+        temperature = temperature_humidity_sensor.ReadTemperature(CELCIUS);
+        humidity = temperature_humidity_sensor.ReadHumidity();
         break;
       }
     }
@@ -66,23 +76,32 @@ static void send_message() {
     else {
         payload.addTemperature(2, temperature);
         payload.addRelativeHumidity(3, humidity);
-        printf("Temp=%f Humi=%f\n", temperature, humidity);
+        payload.addAnalogInput(4, soil_temperature);
+        payload.addAnalogInput(5, soil_moisture);
+        
+        printf("Ambient Temp=%f Ambient Humi=%f Soil temp=%f Soil moist=%f\n", temperature, humidity, soil_temperature, soil_moisture);
     }
-   
 
-    printf("Sending %d bytes\n", payload.getSize());
+    
 
-    int16_t retcode = lorawan.send(MBED_CONF_LORA_APP_PORT, payload.getBuffer(), payload.getSize(), MSG_UNCONFIRMED_FLAG);
+    if (payload.getSize() > 0) {
+      printf("Sending %d bytes\n", payload.getSize());
+
+      int16_t retcode = lorawan.send(MBED_CONF_LORA_APP_PORT, payload.getBuffer(), payload.getSize(), MSG_UNCONFIRMED_FLAG);
 
     // for some reason send() ret\urns -1... I cannot find out why, the stack returns the right number. I feel that this is some weird Emscripten quirk
-    if (retcode < 0) {
+      if (retcode < 0) {
         retcode == LORAWAN_STATUS_WOULD_BLOCK ? printf("send - duty cycle violation\n")
-                : printf("send() - Error code %d\n", retcode);
+            : printf("send() - Error code %d\n", retcode);
 
         standby(STANDBY_TIME_S);
+      }
+
+      printf("%d bytes scheduled for transmission\n", retcode);
     }
 
-    printf("%d bytes scheduled for transmission\n", retcode);
+    else
+      standby(STANDBY_TIME_S);
 }
 
 int main() {
