@@ -9,7 +9,7 @@
 #include "DHT.h"
 #include "soil_sensors.h"
 
-#define     STANDBY_TIME_S        5 * 60
+#define     STANDBY_TIME_S        60 * 60
 #define     SOIL_SENSORS          0
 #define     SENSOR_READ_ATTEMPTS  3
 #define     SENSOR_WAIT_TIME      3000 //slow sensor, no more than once per 2 seconds
