@@ -6,18 +6,23 @@
 #include "CayenneLPP.h"
 #include "lora_radio_helper.h"
 #include "standby.h"
-#include "DHT.h" 
+#include "DHT.h"
+#include "soil_sensors.h"
 
-#define     STANDBY_TIME_S     60 * 60
-
-#define     SENSOR_READ_ATTEMPTS 3
-#define     SENSOR_WAIT_TIME 3000 //slow sensor, no more than once per 2 seconds
+#define     STANDBY_TIME_S        5 * 60
+#define     SOIL_SENSORS          0
+#define     SENSOR_READ_ATTEMPTS  3
+#define     SENSOR_WAIT_TIME      3000 //slow sensor, no more than once per 2 seconds
   
 
 
-static uint32_t DEVADDR = 0x26011331;
-static uint8_t NWKSKEY[] = { 0x98, 0xCC, 0x0C, 0xF5, 0xA9, 0x29, 0x71, 0x93, 0x90, 0xC0, 0xF1, 0x63, 0xD6, 0x60, 0x5D, 0x11 };
-static uint8_t APPSKEY[] = { 0xB4, 0xCA, 0x54, 0xD2, 0x3F, 0x9B, 0x55, 0x0F, 0x06, 0x91, 0x8E, 0x16, 0x07, 0x87, 0x47, 0x20 };
+static uint32_t DEVADDR_1 = 0x26011331;
+static uint8_t NWKSKEY_1[] = { 0x98, 0xCC, 0x0C, 0xF5, 0xA9, 0x29, 0x71, 0x93, 0x90, 0xC0, 0xF1, 0x63, 0xD6, 0x60, 0x5D, 0x11 };
+static uint8_t APPSKEY_1[] = { 0xB4, 0xCA, 0x54, 0xD2, 0x3F, 0x9B, 0x55, 0x0F, 0x06, 0x91, 0x8E, 0x16, 0x07, 0x87, 0x47, 0x20 };
+
+static uint32_t DEVADDR_2 = 0x260113A7;
+static uint8_t NWKSKEY_2[] = { 0x99, 0x97, 0x1D, 0x69, 0x61, 0x18, 0x5D, 0xFC, 0x0A, 0x33, 0xCE, 0xE0, 0x9F, 0x87, 0x7F, 0xFC };
+static uint8_t APPSKEY_2[] = { 0x0C, 0xA2, 0x60, 0x24, 0xE0, 0x37, 0xF7, 0xBE, 0xD0, 0x44, 0x34, 0xC9, 0x9A, 0x2F, 0xAC, 0x26 };
 
 
 // The port we're sending and receiving on
@@ -49,28 +54,10 @@ static void send_message() {
    
     float soil_moisture = 0.0f;
     float soil_temperature = 0.0f;
-    float mysensor = 0.0f;
     
-    soil_temperature  = ((soil_temperature_sensor.read() * 41.67 * 3.3)-40); //soil temperature
     
-             //soil moisture
-    mysensor = soil_moisture_sensor.read() * 3.3; 
-    if ((mysensor) >= 0 && mysensor < 1.1){
-              soil_moisture = ((mysensor * 10)-1); //for range of 0 to 1.1v
-       }
-    else if ((mysensor) >= 1.1 && mysensor < 1.3){
-              soil_moisture = ((mysensor * 25)-17.5);  //for range of 1.1 to 1.3v
-       }
-    else if ((mysensor) >= 1.3 && mysensor < 1.82){
-              soil_moisture = ((mysensor * 48.08)-47.5);  //for range of 1.3 to 1.82v
-       }
-    else if ((mysensor) >= 1.82 && mysensor < 2.2){
-              soil_moisture = ((mysensor * 26.32) - 7.89);  //for range of 1.82 to 2.2v
-       }
-    else {
-
-      soil_moisture = ((mysensor * 62.5 ) - 87.5);
-    }
+    soil_temperature = calc_soil_temperature(soil_temperature_sensor.read());
+    soil_moisture = calc_soil_moisture(soil_moisture_sensor.read());
     
     int error_code;
 
@@ -94,12 +81,15 @@ static void send_message() {
     else {
         payload.addTemperature(2, temperature);
         payload.addRelativeHumidity(3, humidity);
-        payload.addAnalogInput(4, soil_temperature);
-        payload.addAnalogInput(5, soil_moisture);
         
-        printf("Ambient Temp=%f Ambient Humi=%f Soil temp=%f Soil moist=%f\n", temperature, humidity, soil_temperature, soil_moisture);
     }
 
+    if (SOIL_SENSORS) {
+      payload.addAnalogInput(4, soil_temperature);
+      payload.addAnalogInput(5, soil_moisture);
+    }
+    
+    printf("Ambient Temp=%f Ambient Humi=%f Soil temp=%f Soil moist=%f\n", temperature, humidity, soil_temperature, soil_moisture);
     
 
     if (payload.getSize() > 0) {
@@ -154,9 +144,9 @@ int main() {
     lorawan_connect_t connect_params;
     connect_params.connect_type = LORAWAN_CONNECTION_ABP;
 
-    connect_params.connection_u.abp.dev_addr = DEVADDR;
-    connect_params.connection_u.abp.nwk_skey = NWKSKEY;
-    connect_params.connection_u.abp.app_skey = APPSKEY;
+    connect_params.connection_u.abp.dev_addr = DEVADDR_2;
+    connect_params.connection_u.abp.nwk_skey = NWKSKEY_2;
+    connect_params.connection_u.abp.app_skey = APPSKEY_2;
 
     lorawan_status_t retcode = lorawan.connect(connect_params);
 
