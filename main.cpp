@@ -10,7 +10,7 @@
 #include "soil_sensors.h"
 
 #define     STANDBY_TIME_S        60 * 60
-#define     SOIL_SENSORS          0
+#define     SOIL_SENSORS          1
 #define     SENSOR_READ_ATTEMPTS  3
 #define     SENSOR_WAIT_TIME      3000 //slow sensor, no more than once per 2 seconds
   
@@ -25,10 +25,18 @@ static uint8_t NWKSKEY_2[] = { 0x99, 0x97, 0x1D, 0x69, 0x61, 0x18, 0x5D, 0xFC, 0
 static uint8_t APPSKEY_2[] = { 0x0C, 0xA2, 0x60, 0x24, 0xE0, 0x37, 0xF7, 0xBE, 0xD0, 0x44, 0x34, 0xC9, 0x9A, 0x2F, 0xAC, 0x26 };
 
 
+static uint32_t DEVADDR_3 = 0x26011D99;
+static uint8_t NWKSKEY_3[] = { 0xC9, 0xEF, 0x33, 0x81, 0x09, 0x00, 0x57, 0xC6, 0x5A, 0xAB, 0x07, 0xA3, 0xCD, 0xA5, 0x5D, 0x91 };
+static uint8_t APPSKEY_3[] = { 0x55, 0x49, 0xC9, 0x96, 0xBC, 0x10, 0x49, 0x84, 0xC0, 0xA2, 0x55, 0x13, 0x7E, 0x1A, 0x2A, 0xC9 };
+
+
+
+
 // The port we're sending and receiving on
 #define MBED_CONF_LORA_APP_PORT     15
 
 // Peripherals
+static DigitalOut sensor_enable(PB_8); // control of sensor circuit
 static DHT temperature_humidity_sensor(D7, SEN51035P);          // Temperature sensor
 static AnalogIn soil_temperature_sensor(A1); //soil temperature
 static AnalogIn soil_moisture_sensor(A2); // Moisture sensor
@@ -55,9 +63,12 @@ static void send_message() {
     float soil_moisture = 0.0f;
     float soil_temperature = 0.0f;
     
-    
+    sensor_enable = 1;
+    printf("Sensors enabled ..\n");
+    wait(2); 
     soil_temperature = calc_soil_temperature(soil_temperature_sensor.read());
     soil_moisture = calc_soil_moisture(soil_moisture_sensor.read());
+    sensor_enable = 0;
     
     int error_code;
 
@@ -144,9 +155,9 @@ int main() {
     lorawan_connect_t connect_params;
     connect_params.connect_type = LORAWAN_CONNECTION_ABP;
 
-    connect_params.connection_u.abp.dev_addr = DEVADDR_2;
-    connect_params.connection_u.abp.nwk_skey = NWKSKEY_2;
-    connect_params.connection_u.abp.app_skey = APPSKEY_2;
+    connect_params.connection_u.abp.dev_addr = DEVADDR_3;
+    connect_params.connection_u.abp.nwk_skey = NWKSKEY_3;
+    connect_params.connection_u.abp.app_skey = APPSKEY_3;
 
     lorawan_status_t retcode = lorawan.connect(connect_params);
 
