@@ -9,7 +9,7 @@
 #include "DHT.h"
 #include "soil_sensors.h"
 
-#define     STANDBY_TIME_S        60 * 60
+#define     STANDBY_TIME_S        60
 #define     SOIL_SENSORS          1
 #define     SENSOR_READ_ATTEMPTS  3
 #define     SENSOR_WAIT_TIME      3000 //slow sensor, no more than once per 2 seconds
@@ -155,9 +155,9 @@ int main() {
     lorawan_connect_t connect_params;
     connect_params.connect_type = LORAWAN_CONNECTION_ABP;
 
-    connect_params.connection_u.abp.dev_addr = DEVADDR_3;
-    connect_params.connection_u.abp.nwk_skey = NWKSKEY_3;
-    connect_params.connection_u.abp.app_skey = APPSKEY_3;
+    connect_params.connection_u.abp.dev_addr = DEVADDR_2;
+    connect_params.connection_u.abp.nwk_skey = NWKSKEY_2;
+    connect_params.connection_u.abp.app_skey = APPSKEY_2;
 
     lorawan_status_t retcode = lorawan.connect(connect_params);
 
